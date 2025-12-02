@@ -1,0 +1,13 @@
+{
+  "id": "example-tool",
+  "name": "示例工具",
+  "version": "1.0.0",
+  "description": "这是一个示例工具，展示如何创建工具",
+  "author": "zww",
+  "main": "README.md",
+  "icon": "📝",
+  "requiredAuth": false,
+  "hidden": false,
+  "dependencies": {}
+}
+

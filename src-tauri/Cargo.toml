@@ -21,9 +21,36 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-prevent-default = "4.0"
+# 加密相关
+rsa = "0.9"
+rand = "0.8"
+base64 = "0.21"
+sha2 = "0.10"
+# HTTP请求
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+# 异步运行时
+tokio = { version = "1", features = ["full"] }
+# 错误处理
+thiserror = "1.0"
+anyhow = "1.0"
+# 日志
+log = "0.4"
+env_logger = "0.11"
+# 本地存储
+directories = "5.0"
+# 文件监控
+notify = "6.1"
+# 文件操作
+walkdir = "2.4"
+# 时间处理
+chrono = { version = "0.4", features = ["serde"] }
+# UUID
+uuid = { version = "1.6", features = ["v4", "serde"] }
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.

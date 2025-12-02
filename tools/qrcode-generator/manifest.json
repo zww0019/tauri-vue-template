@@ -1,0 +1,13 @@
+{
+  "id": "qrcode-generator",
+  "name": "二维码生成器",
+  "version": "1.0.0",
+  "description": "快速生成二维码，支持文本、URL等多种格式",
+  "author": "zww",
+  "main": "README.md",
+  "icon": "📱",
+  "requiredAuth": false,
+  "hidden": false,
+  "dependencies": {}
+}
+
