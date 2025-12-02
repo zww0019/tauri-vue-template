@@ -46,6 +46,11 @@ impl AuthService {
         }
     }
     
+    /// 检查是否有公钥
+    pub fn has_public_key(&self) -> bool {
+        self.public_key.is_some()
+    }
+    
     /// 解析PEM格式的公钥
     fn parse_public_key(&self, pem_str: &str) -> AppResult<RsaPublicKey> {
         use rsa::pkcs8::DecodePublicKey;
@@ -86,23 +91,164 @@ impl AuthService {
             return Err(AppError::Auth("License格式无效".to_string()));
         }
         
-        let _public_key = self.public_key.as_ref()
+        // 检查是否包含公钥标记（防止公钥被当作license code）
+        if license_code.contains("BEGIN") || license_code.contains("PUBLIC KEY") {
+            return Err(AppError::Auth("许可证格式无效，请确保输入的是正确的许可证代码，而不是公钥".to_string()));
+        }
+        
+        let public_key = self.public_key.as_ref()
             .ok_or_else(|| AppError::Auth("公钥未加载，请先获取公钥".to_string()))?;
         
         // Base64解码
         let encrypted_data = general_purpose::STANDARD.decode(license_code)
             .map_err(|e| AppError::Auth(format!("License解码失败: {}", e)))?;
         
-        // 注意：RSA公钥无法解密，这里需要重新设计验证逻辑
-        // 临时方案：直接解析base64后的JSON（实际应该用签名验证）
-        let decrypted_str = String::from_utf8(encrypted_data)
-            .map_err(|e| AppError::Auth(format!("License数据格式错误: {}", e)))?;
+        // 使用RSA公钥解密私钥加密的数据
+        // 在RSA中，如果数据是用私钥加密的（使用PKCS1v15填充），可以用公钥解密
+        // 从toolset的代码看，使用的是PKCS1_PADDING，对应Rust中的Pkcs1v15
         
-        // 解析JSON
-        let license_data: LicenseData = serde_json::from_str(&decrypted_str)
-            .map_err(|e| AppError::Auth(format!("License数据解析失败: {}", e)))?;
+        // 在rsa crate中，我们需要使用公钥的原始RSA操作来解密
+        // 由于rsa crate的API限制，我们需要访问公钥的内部结构
         
-        Ok(license_data)
+        // 先尝试直接解析UTF-8（用于未加密的数据，开发/测试环境）
+        match String::from_utf8(encrypted_data.clone()) {
+            Ok(decrypted_str) => {
+                // 数据没有被加密，直接解析JSON
+                let license_data: LicenseData = serde_json::from_str(&decrypted_str)
+                    .map_err(|e| AppError::Auth(format!("License数据解析失败: {}", e)))?;
+                Ok(license_data)
+            }
+            Err(_) => {
+                // 数据是加密的，需要使用公钥解密
+                // 使用rsa crate的底层API进行解密
+                use rsa::traits::PublicKeyParts;
+                
+                // 获取公钥的模数和指数
+                let n = public_key.n();
+                let e = public_key.e();
+                
+                // 使用RSA原始操作：decrypted = encrypted^e mod n
+                // 将加密数据转换为BigUint
+                use rsa::BigUint;
+                
+                let encrypted_bigint = BigUint::from_bytes_be(&encrypted_data);
+                
+                // 计算：decrypted = encrypted^e mod n
+                let decrypted_bigint = encrypted_bigint.modpow(e, n);
+                
+                // 将解密后的数据转换回字节
+                // 注意：RSA 密钥大小通常是 2048 位（256 字节），所以解密后的数据应该是 256 字节
+                let mut decrypted_bytes = decrypted_bigint.to_bytes_be();
+                
+                // 确保数据长度正确（可能需要前导零）
+                let key_size = (public_key.n().bits() + 7) / 8; // 密钥大小（字节）
+                if decrypted_bytes.len() < key_size {
+                    // 在前面补零
+                    let mut padded = vec![0u8; key_size - decrypted_bytes.len()];
+                    padded.extend_from_slice(&decrypted_bytes);
+                    decrypted_bytes = padded;
+                }
+                
+                // 移除PKCS1v15填充
+                // PKCS1v15加密格式：00 02 [随机填充（非零字节）] 00 [数据]
+                // 我们需要找到数据开始的位置（跳过填充）
+                let mut data_start = None;
+                
+                // 检查格式：必须以 00 02 开头
+                if decrypted_bytes.len() >= 2 && decrypted_bytes[0] == 0x00 && decrypted_bytes[1] == 0x02 {
+                    // 从位置 2 开始查找 00 标记（填充结束）
+                    for i in 2..decrypted_bytes.len() {
+                        if decrypted_bytes[i] == 0x00 {
+                            // 找到填充结束标记，下一个字节开始是数据
+                            if i + 1 < decrypted_bytes.len() {
+                                data_start = Some(i + 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // 提取实际数据
+                let actual_data = if let Some(start) = data_start {
+                    &decrypted_bytes[start..]
+                } else {
+                    // 如果没有找到标准的 PKCS1v15 填充，尝试其他方法
+                    // 可能数据格式不同，或者填充方式不同
+                    // 尝试查找第一个可打印字符的位置
+                    let mut found_start = None;
+                    for (i, &byte) in decrypted_bytes.iter().enumerate() {
+                        // 查找 JSON 开始字符 '{' 或 '[' 
+                        if byte == b'{' || byte == b'[' {
+                            found_start = Some(i);
+                            break;
+                        }
+                    }
+                    
+                    if let Some(start) = found_start {
+                        &decrypted_bytes[start..]
+                    } else {
+                        // 最后尝试：跳过前导零
+                        let mut start = 0;
+                        for (i, &byte) in decrypted_bytes.iter().enumerate() {
+                            if byte != 0x00 {
+                                start = i;
+                                break;
+                            }
+                        }
+                        &decrypted_bytes[start..]
+                    }
+                };
+                
+                // 尝试解析为UTF-8字符串
+                let decrypted_str = String::from_utf8(actual_data.to_vec())
+                    .map_err(|e| {
+                        // 添加详细的调试信息
+                        let hex_bytes: String = actual_data.iter()
+                            .take(200) // 显示前200个字节
+                            .map(|b| format!("{:02x}", b))
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                        
+                        // 尝试以可打印字符形式显示（替换不可打印字符）
+                        let printable: String = actual_data.iter()
+                            .take(200)
+                            .map(|&b| {
+                                if b >= 32 && b <= 126 {
+                                    b as char
+                                } else {
+                                    '.'
+                                }
+                            })
+                            .collect();
+                        
+                        // 尝试使用 lossy 转换显示（即使不是有效的UTF-8）
+                        let lossy_str = String::from_utf8_lossy(actual_data);
+                        
+                        log::error!("======== 解密数据调试信息 ========");
+                        log::error!("解密后的数据长度: {} 字节", actual_data.len());
+                        log::error!("前200字节（十六进制）: {}", hex_bytes);
+                        log::error!("前200字节（可打印字符）: {}", printable);
+                        log::error!("完整数据（lossy UTF-8）: {}", lossy_str);
+                        log::error!("UTF-8错误详情: {}", e);
+                        log::error!("====================================");
+                        
+                        AppError::Auth(format!(
+                            "License解密后数据格式错误: {} (数据长度: {} 字节, 可打印预览: {})",
+                            e,
+                            actual_data.len(),
+                            printable.chars().take(50).collect::<String>()
+                        ))
+                    })?;
+                
+                log::info!("解密成功，解密后的字符串: {}", decrypted_str);
+                
+                // 解析JSON
+                let license_data: LicenseData = serde_json::from_str(&decrypted_str)
+                    .map_err(|e| AppError::Auth(format!("License数据解析失败: {}", e)))?;
+                
+                Ok(license_data)
+            }
+        }
     }
     
     /// 获取设备指纹

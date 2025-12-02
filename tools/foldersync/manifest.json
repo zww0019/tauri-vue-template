@@ -1,0 +1,13 @@
+{
+  "id": "foldersync",
+  "name": "文件夹实时同步",
+  "version": "1.0.1",
+  "description": "单向文件夹实时同步工具，支持多个文件夹同时监控",
+  "author": "zww",
+  "library": "libtool_foldersync",
+  "icon": "🔄",
+  "requiredAuth": true,
+  "hidden": false,
+  "frontend": "views/ToolView.vue"
+}
+

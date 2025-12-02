@@ -18,7 +18,13 @@
       "preLaunchTask": "ui:dev",
       "env": {
         "PATH": "${env:HOME}/.cargo/bin:${env:HOME}/.nvm/versions/node/v22.21.1/bin:${env:PATH}"
-      }
+      },
+      "stopOnEntry": false,
+      "sourceLanguages": ["rust"],
+      "initCommands": [
+        // 告诉LLDB在单步执行时，跳过指定路径的代码
+        "settings set target.process.thread.step-avoid-regexp ^(__|std|core|alloc|proc_macro|\\[.*)"
+    ]
     }
   ]
 }

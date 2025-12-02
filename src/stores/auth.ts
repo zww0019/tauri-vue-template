@@ -4,8 +4,14 @@ import { ref, computed } from 'vue'
 
 export interface LicenseData {
   toolId: string
-  username: string
+  licenseId: string
+  toolId: string
+  licenseeId: string
+  issuedDate: string
   expiryDate: string
+  maxDevices: number
+  features: string[]
+  version: string
   maxDevices: number
 }
 

@@ -24,9 +24,6 @@ pub enum AppError {
     #[error("工具错误: {0}")]
     Tool(String),
     
-    #[error("依赖管理错误: {0}")]
-    Dependency(String),
-    
     #[error("存储错误: {0}")]
     Storage(String),
     

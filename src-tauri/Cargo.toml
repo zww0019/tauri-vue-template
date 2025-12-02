@@ -32,7 +32,9 @@ rand = "0.8"
 base64 = "0.21"
 sha2 = "0.10"
 # HTTP请求
-reqwest = { version = "0.11", features = ["json", "blocking"] }
+reqwest = { version = "0.11", features = ["json"] }
+# ZIP解压
+zip = "0.6"
 # 异步运行时
 tokio = { version = "1", features = ["full"] }
 # 错误处理
@@ -51,6 +53,10 @@ walkdir = "2.4"
 chrono = { version = "0.4", features = ["serde"] }
 # UUID
 uuid = { version = "1.6", features = ["v4", "serde"] }
+# 动态库加载
+libloading = "0.8"
+# 工具插件接口
+toolset-plugin = { path = "../toolset-plugin" }
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.

@@ -11,7 +11,6 @@ pub struct ToolInfo {
     pub author: String,
     pub icon: String,
     pub required_auth: bool,
-    pub has_dependencies: bool,
     pub hidden: bool,
 }
 
@@ -23,14 +22,17 @@ pub struct ToolManifest {
     pub version: String,
     pub description: Option<String>,
     pub author: Option<String>,
-    pub main: String,
+    /// Rust 工具的库名称（默认为 libtool_{id}）
+    #[serde(default)]
+    pub library: Option<String>,
     pub icon: Option<String>,
     #[serde(rename = "requiredAuth", default = "default_required_auth")]
     pub required_auth: bool,
     #[serde(default)]
     pub hidden: bool,
+    /// 前端组件路径（相对于工具目录，默认为 views/ToolView.vue）
     #[serde(default)]
-    pub dependencies: HashMap<String, String>,
+    pub frontend: Option<String>,
 }
 
 fn default_required_auth() -> bool {
@@ -40,13 +42,21 @@ fn default_required_auth() -> bool {
 /// License数据
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LicenseData {
+    #[serde(rename = "licenseId")]
+    pub license_id: String,
     #[serde(rename = "toolId")]
     pub tool_id: String,
-    pub username: String,
+    #[serde(rename = "licenseeId")]
+    pub licensee_id: String,
+    #[serde(rename = "issuedDate")]
+    pub issued_date: String,
     #[serde(rename = "expiryDate")]
     pub expiry_date: String,
     #[serde(rename = "maxDevices")]
     pub max_devices: i32,
+    #[serde(default)]
+    pub features: Vec<String>,
+    pub version: String,
 }
 
 /// 工具License信息
@@ -77,13 +87,6 @@ pub struct AuthStatus {
     pub license_data: Option<LicenseData>,
 }
 
-/// 依赖检查结果
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DependencyCheckResult {
-    pub installed: bool,
-    pub missing: Vec<String>,
-    pub details: HashMap<String, bool>,
-}
 
 /// 进度信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
