@@ -115,8 +115,8 @@ export const useStore = defineStore('main', {
     },
 
     onLicenseDialogCancel() {
-      // 如果未注册，关闭应用或保持弹窗
-      this.showLicenseDialog = true
+      // 关闭授权弹窗（如果用户有有效授权）
+      this.showLicenseDialog = false
     },
 
     closeExpiryWarning() {

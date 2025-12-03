@@ -5,14 +5,14 @@
     @click.self="handleCancel"
   >
     <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-4">软件授权</h2>
+      <h2 class="text-2xl font-bold mb-4 text-gray-900">软件授权</h2>
       <p class="text-gray-600 mb-4">请输入您的授权码以继续使用本软件</p>
       
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-2">授权码</label>
         <textarea
           v-model="licenseCode"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder:text-gray-400"
           rows="4"
           placeholder="请输入授权码"
         ></textarea>
@@ -42,8 +42,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { ref } from 'vue';
 
 const props = defineProps<{
   visible: boolean
@@ -89,10 +90,27 @@ const handleVerify = async () => {
   }
 }
 
-const handleCancel = () => {
+const handleCancel = async () => {
   licenseCode.value = ''
   errorMessage.value = ''
-  emit('cancel')
+  
+  // 检查是否有有效的授权码
+  try {
+    const hasLicense = await invoke<boolean>('check_license_registered')
+    if (!hasLicense) {
+      // 如果没有有效授权码，退出应用
+      const window = getCurrentWindow()
+      await window.close()
+    } else {
+      // 如果有有效授权码，只关闭弹窗
+      emit('cancel')
+    }
+  } catch (error) {
+    // 如果检查失败，也退出应用（安全起见）
+    console.error('检查授权状态失败:', error)
+    const window = getCurrentWindow()
+    await window.close()
+  }
 }
 </script>
 
