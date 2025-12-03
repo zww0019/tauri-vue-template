@@ -11,6 +11,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ExpiryWarning: typeof import('./src/components/ExpiryWarning.vue')['default']
     GreetComponent: typeof import('./src/components/GreetComponent.vue')['default']
+    LicenseDialog: typeof import('./src/components/LicenseDialog.vue')['default']
+    UpdateDialog: typeof import('./src/components/UpdateDialog.vue')['default']
   }
 }

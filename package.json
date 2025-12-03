@@ -7,6 +7,7 @@
     "dev": "concurrently --kill-others \"pnpm vite:dev\" \"pnpm devtools\"",
     "vite:dev": "cross-env DEBUG=0 vite",
     "devtools": "vue-devtools",
+    "tauri:dev": "cross-env LICENSE_SERVER_URL=https://your-api-server.com pnpm tauri dev",
     "test": "vitest",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
