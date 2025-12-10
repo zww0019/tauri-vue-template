@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
-import GreetComponent from './components/GreetComponent.vue'
-import LicenseDialog from './components/LicenseDialog.vue'
-import UpdateDialog from './components/UpdateDialog.vue'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { onMounted, onUnmounted, ref } from 'vue'
 import ExpiryWarning from './components/ExpiryWarning.vue'
+import LicenseDialog from './components/LicenseDialog.vue'
+import SimilarityApp from './components/similarity/SimilarityApp.vue'
+import UpdateDialog from './components/UpdateDialog.vue'
 
 const store = useStore()
+const showTest = ref(false)
 
 // 定时检测授权有效期（每天检测一次）
 let expiryCheckInterval: number | null = null
@@ -64,23 +65,18 @@ onUnmounted(() => {
     />
     
     <!-- 主界面（只有授权通过后才显示） -->
-    <main v-if="store.isLicenseRegistered" class="flex-1 flex flex-col items-center justify-center min-h-screen">
-      <h1>Welcome to Tauri 2 + Vue</h1>
-
-      <div class="flex flex-row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://vuejs.org/" target="_blank">
-          <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-        </a>
+    <main v-if="store.isLicenseRegistered">
+      <div class="p-4">
+        <button 
+          @click="showTest = !showTest"
+          class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+        >
+          {{ showTest ? '返回主界面' : '测试命令' }}
+        </button>
       </div>
-      <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
-
-      <GreetComponent />
+      
+      <TestCommand v-if="showTest" />
+      <SimilarityApp v-else />
     </main>
   </div>
 </template>

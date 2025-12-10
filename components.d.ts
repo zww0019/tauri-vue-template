@@ -11,11 +11,18 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BatchComparison: typeof import('./src/components/similarity/BatchComparison.vue')['default']
+    DetailView: typeof import('./src/components/similarity/DetailView.vue')['default']
     ExpiryWarning: typeof import('./src/components/ExpiryWarning.vue')['default']
+    FileSelector: typeof import('./src/components/similarity/FileSelector.vue')['default']
     GreetComponent: typeof import('./src/components/GreetComponent.vue')['default']
     LicenseDialog: typeof import('./src/components/LicenseDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SettingsPanel: typeof import('./src/components/similarity/SettingsPanel.vue')['default']
+    SimilarityApp: typeof import('./src/components/similarity/SimilarityApp.vue')['default']
+    SingleComparison: typeof import('./src/components/similarity/SingleComparison.vue')['default']
+    TestCommand: typeof import('./src/components/TestCommand.vue')['default']
     UpdateDialog: typeof import('./src/components/UpdateDialog.vue')['default']
   }
 }

@@ -29,11 +29,35 @@ serde_json = "1"
 tauri-plugin-prevent-default = "4.0"
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
-tokio = { version = "1", features = ["rt", "time"] }
+tokio = { version = "1", features = ["rt", "time", "sync", "fs"] }
 reqwest = { version = "0.12", features = ["json"] }
 once_cell = "1.20"
 rsa = { version = "0.9", features = ["pem"] }
 pkcs8 = "0.10"
+
+# 文档解析相关
+docx-rs = "0.4"
+pdf-extract = "0.7"
+lopdf = "0.34"
+zip = "2.2"
+xml-rs = "0.8"
+
+# 文本相似度计算
+unicode-segmentation = "1.12"
+jieba-rs = "0.7"
+strsim = "0.11"
+
+# 图像处理
+image = "0.25"
+
+# 报告生成
+printpdf = "0.7"
+
+# 其他工具
+uuid = { version = "1.11", features = ["v4"] }
+thiserror = "2.0"
+rayon = "1.10"
+sha2 = "0.10"
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.

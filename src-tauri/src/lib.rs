@@ -8,6 +8,13 @@ mod public_key;
 mod update;
 mod config;
 
+// 文档相似度检测模块
+pub mod document_parser;
+pub mod text_similarity;
+pub mod image_similarity;
+pub mod comparison;
+pub mod report;
+
 // 重新导出常用类型
 pub use license::LicenseInfo;
 
@@ -18,6 +25,13 @@ use license::{
 use public_key::{get_public_key, init_public_key_manager, refresh_public_key};
 use update::{check_update, download_update, install_update};
 use config::get_server_url;
+
+// 导入文档相似度检测命令
+use comparison::{
+    parse_document, compare_documents, batch_compare_documents,
+    get_batch_progress, validate_file_format, get_supported_formats, get_default_config,
+};
+use report::{generate_report, generate_batch_report};
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -153,7 +167,17 @@ pub fn run() {
             download_update,
             install_update,
             refresh_public_key,
-            get_public_key
+            get_public_key,
+            // 文档相似度检测命令
+            parse_document,
+            compare_documents,
+            batch_compare_documents,
+            get_batch_progress,
+            validate_file_format,
+            get_supported_formats,
+            get_default_config,
+            generate_report,
+            generate_batch_report
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

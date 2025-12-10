@@ -31,6 +31,7 @@ export default defineConfig({
         'pinia',
         {
           '@/store': ['useStore'],
+          '@/stores/similarityStore': ['useSimilarityStore'],
         },
       ],
       dts: 'auto-imports.d.ts',

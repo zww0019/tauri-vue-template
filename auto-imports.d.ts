@@ -75,6 +75,7 @@ declare global {
   const useModel: typeof import('vue').useModel
   const useRoute: typeof import('vue-router').useRoute
   const useRouter: typeof import('vue-router').useRouter
+  const useSimilarityStore: typeof import('@/stores/similarityStore').useSimilarityStore
   const useSlots: typeof import('vue').useSlots
   const useStore: typeof import('@/store').useStore
   const useTemplateRef: typeof import('vue').useTemplateRef
@@ -164,6 +165,7 @@ declare module 'vue' {
     readonly useModel: UnwrapRef<typeof import('vue')['useModel']>
     readonly useRoute: UnwrapRef<typeof import('vue-router')['useRoute']>
     readonly useRouter: UnwrapRef<typeof import('vue-router')['useRouter']>
+    readonly useSimilarityStore: UnwrapRef<typeof import('@/stores/similarityStore')['useSimilarityStore']>
     readonly useSlots: UnwrapRef<typeof import('vue')['useSlots']>
     readonly useStore: UnwrapRef<typeof import('@/store')['useStore']>
     readonly useTemplateRef: UnwrapRef<typeof import('vue')['useTemplateRef']>
