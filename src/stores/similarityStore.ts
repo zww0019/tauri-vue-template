@@ -68,18 +68,6 @@ export interface MatchedParagraph {
   level: SimilarityLevel
 }
 
-/** 匹配的句子对 */
-export interface MatchedSentence {
-  source_index: number
-  source_text: string
-  source_paragraph: number
-  target_index: number
-  target_text: string
-  target_paragraph: number
-  similarity: number
-  level: SimilarityLevel
-}
-
 /** 关键词信息 */
 export interface KeywordInfo {
   word: string
@@ -92,15 +80,22 @@ export interface TextSimilarityResult {
   overall_similarity: number
   overall_level: SimilarityLevel
   cosine_similarity: number
-  jaccard_similarity: number
+  ngram_similarity: number
   edit_distance_similarity: number
   keyword_similarity: number
   matched_paragraphs: MatchedParagraph[]
-  matched_sentences: MatchedSentence[]
   source_keywords: KeywordInfo[]
   target_keywords: KeywordInfo[]
   common_keywords: string[]
   confidence: number
+  // 各算法执行耗时（微秒）
+  tokenization_time_us: number
+  cosine_time_us: number
+  ngram_time_us: number
+  edit_distance_time_us: number
+  keyword_extraction_time_us: number
+  keyword_similarity_time_us: number
+  paragraph_matching_time_us: number
 }
 
 /** 匹配的图像对 */
@@ -134,10 +129,9 @@ export interface ComparisonConfig {
   text_weight: number
   image_weight: number
   paragraph_threshold: number
-  sentence_threshold: number
   image_threshold: number
   display_threshold: number
-  granularity: 'overall' | 'paragraph' | 'sentence'
+  granularity: 'overall' | 'paragraph'
 }
 
 /** 单次对比结果 */
@@ -246,7 +240,6 @@ export const useSimilarityStore = defineStore('similarity', {
       text_weight: 0.7,
       image_weight: 0.3,
       paragraph_threshold: 0.5,
-      sentence_threshold: 0.6,
       image_threshold: 0.7,
       display_threshold: 0.3,
       granularity: 'paragraph',
@@ -411,29 +404,44 @@ export const useSimilarityStore = defineStore('similarity', {
 
     /** 执行单文件对比 */
     async compareSingle(): Promise<boolean> {
+      console.log('[compareSingle] 开始执行')
+      console.log('[compareSingle] sourceFile:', this.sourceFile)
+      console.log('[compareSingle] targetFile:', this.targetFile)
+      
       if (!this.sourceFile || !this.targetFile) {
         this.error = '请选择两个文件进行对比'
+        console.log('[compareSingle] 文件未选择')
         return false
       }
 
+      console.log('[compareSingle] 设置 isProcessing = true')
       this.isProcessing = true
       this.error = null
 
       try {
+        console.log('[compareSingle] 调用 compare_documents')
+        console.log('[compareSingle] 参数:', {
+          file1: this.sourceFile.path,
+          file2: this.targetFile.path,
+          config: this.config,
+        })
+        
         const result = await invoke<ComparisonResult>('compare_documents', {
           file1: this.sourceFile.path,
           file2: this.targetFile.path,
           config: this.config,
         })
 
+        console.log('[compareSingle] 对比成功，结果:', result)
         this.singleResult = result
         this.addToHistory(result)
         return true
       } catch (e) {
-        console.error('对比失败:', e)
+        console.error('[compareSingle] 对比失败:', e)
         this.error = `对比失败: ${e}`
         return false
       } finally {
+        console.log('[compareSingle] 设置 isProcessing = false')
         this.isProcessing = false
       }
     },

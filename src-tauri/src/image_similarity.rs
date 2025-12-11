@@ -337,16 +337,16 @@ impl ImageSimilarityCalculator {
         ((avg_r, avg_g, avg_b), histogram)
     }
 
-    /// 计算两个图像的相似度
+    /// 计算两个图像的相似度（方案B：移除颜色距离）
     fn compute_similarity(&self, feat1: &ImageFeatures, feat2: &ImageFeatures) -> f64 {
         let mut similarity = 0.0;
         let mut weight_sum = 0.0;
 
-        // 感知哈希相似度
+        // 感知哈希相似度（核心算法）
         if self.use_perceptual_hash && !feat1.perceptual_hash.is_empty() && !feat2.perceptual_hash.is_empty() {
             let hash_sim = self.hash_similarity(&feat1.perceptual_hash, &feat2.perceptual_hash);
-            similarity += hash_sim * 0.5;
-            weight_sum += 0.5;
+            similarity += hash_sim * 0.6;
+            weight_sum += 0.6;
         }
 
         // 颜色直方图相似度
@@ -359,11 +359,6 @@ impl ImageSimilarityCalculator {
         // 纵横比相似度
         let aspect_sim = 1.0 - (feat1.aspect_ratio - feat2.aspect_ratio).abs().min(1.0);
         similarity += aspect_sim * 0.1;
-        weight_sum += 0.1;
-
-        // 平均颜色相似度
-        let color_sim = self.color_distance_similarity(feat1.average_color, feat2.average_color);
-        similarity += color_sim * 0.1;
         weight_sum += 0.1;
 
         if weight_sum > 0.0 {
@@ -416,15 +411,6 @@ impl ImageSimilarityCalculator {
         bc
     }
 
-    /// 颜色距离相似度
-    fn color_distance_similarity(&self, c1: (u8, u8, u8), c2: (u8, u8, u8)) -> f64 {
-        let dr = (c1.0 as f64 - c2.0 as f64) / 255.0;
-        let dg = (c1.1 as f64 - c2.1 as f64) / 255.0;
-        let db = (c1.2 as f64 - c2.2 as f64) / 255.0;
-
-        let distance = (dr * dr + dg * dg + db * db).sqrt() / 3.0_f64.sqrt();
-        1.0 - distance
-    }
 
     /// 确定匹配类型
     fn determine_match_type(&self, feat1: &ImageFeatures, feat2: &ImageFeatures, similarity: f64) -> String {
@@ -441,10 +427,12 @@ impl ImageSimilarityCalculator {
             reasons.push("纵横比相似");
         }
 
-        // 检查颜色
-        let color_sim = self.color_distance_similarity(feat1.average_color, feat2.average_color);
-        if color_sim > 0.9 {
-            reasons.push("颜色相近");
+        // 检查颜色直方图相似度
+        if !feat1.color_histogram.is_empty() && !feat2.color_histogram.is_empty() {
+            let hist_sim = self.histogram_similarity(&feat1.color_histogram, &feat2.color_histogram);
+            if hist_sim > 0.9 {
+                reasons.push("颜色分布相近");
+            }
         }
 
         if reasons.is_empty() {
@@ -508,15 +496,19 @@ mod tests {
     }
 
     #[test]
-    fn test_color_distance() {
+    fn test_histogram_similarity() {
         let calculator = ImageSimilarityCalculator::default();
         
-        // 相同颜色
-        let sim = calculator.color_distance_similarity((100, 100, 100), (100, 100, 100));
+        // 相同直方图
+        let hist1 = vec![0.1, 0.2, 0.3, 0.4];
+        let hist2 = vec![0.1, 0.2, 0.3, 0.4];
+        let sim = calculator.histogram_similarity(&hist1, &hist2);
         assert!((sim - 1.0).abs() < 0.001);
         
-        // 黑白对比
-        let sim = calculator.color_distance_similarity((0, 0, 0), (255, 255, 255));
+        // 完全不同的直方图
+        let hist3 = vec![1.0, 0.0, 0.0, 0.0];
+        let hist4 = vec![0.0, 0.0, 0.0, 1.0];
+        let sim = calculator.histogram_similarity(&hist3, &hist4);
         assert!(sim < 0.1);
     }
 }

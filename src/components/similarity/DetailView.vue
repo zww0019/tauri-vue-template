@@ -60,11 +60,16 @@ function truncateText(text: string, maxLen: number): string {
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
       <!-- 头部 -->
       <div class="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between flex-shrink-0">
-        <div>
-          <h2 class="text-xl font-bold text-gray-900">详细对比结果</h2>
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-2">
+            <h2 class="text-xl font-bold text-gray-900">详细对比结果</h2>
+          </div>
           <p v-if="result" class="text-sm text-gray-500">
             {{ result.source_file_name }} ↔ {{ result.target_file_name }}
           </p>
+          <div v-if="result" class="flex items-center gap-4 mt-2 text-xs">
+            <span class="text-gray-500">处理耗时: <strong class="text-green-600">{{ result.processing_time_ms }}ms</strong></span>
+          </div>
         </div>
         <button
           @click="emit('close')"
@@ -129,9 +134,9 @@ function truncateText(text: string, maxLen: number): string {
             </div>
             <div class="text-center p-4 bg-purple-50 rounded-xl">
               <div class="text-2xl font-bold text-purple-600">
-                {{ (result.text_result.jaccard_similarity * 100).toFixed(1) }}%
+                {{ (result.text_result.ngram_similarity * 100).toFixed(1) }}%
               </div>
-              <p class="text-xs text-gray-500">Jaccard相似度</p>
+              <p class="text-xs text-gray-500">N-gram相似度</p>
             </div>
             <div class="text-center p-4 bg-green-50 rounded-xl">
               <div class="text-2xl font-bold text-green-600">
@@ -149,15 +154,20 @@ function truncateText(text: string, maxLen: number): string {
 
           <!-- 共同关键词 -->
           <div v-if="result.text_result.common_keywords.length > 0">
-            <h3 class="text-sm font-medium text-gray-700 mb-3">共同关键词 ({{ result.text_result.common_keywords.length }})</h3>
-            <div class="flex flex-wrap gap-2">
-              <span 
-                v-for="keyword in result.text_result.common_keywords" 
-                :key="keyword"
-                class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
-              >
-                {{ keyword }}
-              </span>
+            <h3 class="text-sm font-medium text-gray-700 mb-3">
+              共同关键词 ({{ result.text_result.common_keywords.length }})
+            </h3>
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
+              <div class="flex flex-wrap gap-2">
+                <span 
+                  v-for="(keyword, index) in result.text_result.common_keywords" 
+                  :key="keyword"
+                  class="px-3 py-1.5 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200 shadow-sm"
+                >
+                  <span class="text-xs text-gray-400 mr-1">#{{ index + 1 }}</span>
+                  {{ keyword }}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -195,46 +205,6 @@ function truncateText(text: string, maxLen: number): string {
             </div>
           </div>
 
-          <!-- 相似句子 -->
-          <div v-if="result.text_result.matched_sentences.length > 0">
-            <h3 class="text-sm font-medium text-gray-700 mb-3">
-              相似句子 ({{ result.text_result.matched_sentences.length }})
-            </h3>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="p-3 text-left font-medium text-gray-600">#</th>
-                    <th class="p-3 text-left font-medium text-gray-600">源句子</th>
-                    <th class="p-3 text-left font-medium text-gray-600">目标句子</th>
-                    <th class="p-3 text-center font-medium text-gray-600">相似度</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr 
-                    v-for="(sent, index) in result.text_result.matched_sentences.slice(0, 20)" 
-                    :key="index"
-                    class="border-t border-gray-100 hover:bg-gray-50"
-                  >
-                    <td class="p-3 text-gray-500">{{ index + 1 }}</td>
-                    <td class="p-3 text-gray-700">{{ truncateText(sent.source_text, 100) }}</td>
-                    <td class="p-3 text-gray-700">{{ truncateText(sent.target_text, 100) }}</td>
-                    <td class="p-3 text-center">
-                      <span 
-                        class="px-2 py-1 rounded text-xs font-medium text-white"
-                        :style="{ backgroundColor: getSimilarityColor(sent.similarity) }"
-                      >
-                        {{ (sent.similarity * 100).toFixed(1) }}%
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <p v-if="result.text_result.matched_sentences.length > 20" class="text-center text-sm text-gray-500 mt-2">
-                仅显示前 20 条，共 {{ result.text_result.matched_sentences.length }} 条
-              </p>
-            </div>
-          </div>
         </div>
 
         <!-- 图像对比标签页 -->

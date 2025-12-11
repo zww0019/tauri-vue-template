@@ -141,7 +141,7 @@ pub fn run() {
             });
             
             // 初始化公钥管理器
-            let server_url = get_server_url(&app.handle());
+            let server_url = get_server_url(app.handle());
             let app_handle = app.handle().clone();
             
             // 使用 Tauri 的异步运行时

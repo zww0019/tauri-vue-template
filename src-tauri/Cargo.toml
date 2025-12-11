@@ -46,6 +46,9 @@ xml-rs = "0.8"
 unicode-segmentation = "1.12"
 jieba-rs = "0.7"
 strsim = "0.11"
+# 语义相似度（词向量）- 暂时注释，待后续实现
+# rust-bert = "0.22"
+# tch = "0.16"
 
 # 图像处理
 image = "0.25"

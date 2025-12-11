@@ -17,8 +17,6 @@ declare module 'vue' {
     FileSelector: typeof import('./src/components/similarity/FileSelector.vue')['default']
     GreetComponent: typeof import('./src/components/GreetComponent.vue')['default']
     LicenseDialog: typeof import('./src/components/LicenseDialog.vue')['default']
-    RouterLink: typeof import('vue-router')['RouterLink']
-    RouterView: typeof import('vue-router')['RouterView']
     SettingsPanel: typeof import('./src/components/similarity/SettingsPanel.vue')['default']
     SimilarityApp: typeof import('./src/components/similarity/SimilarityApp.vue')['default']
     SingleComparison: typeof import('./src/components/similarity/SingleComparison.vue')['default']

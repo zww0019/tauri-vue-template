@@ -18,13 +18,11 @@ pub struct ComparisonConfig {
     pub image_weight: f64,
     /// 段落匹配阈值
     pub paragraph_threshold: f64,
-    /// 句子匹配阈值
-    pub sentence_threshold: f64,
     /// 图像匹配阈值
     pub image_threshold: f64,
     /// 相似度显示阈值（低于此值不显示）
     pub display_threshold: f64,
-    /// 对比粒度: "overall" | "paragraph" | "sentence"
+    /// 对比粒度: "overall" | "paragraph"
     pub granularity: String,
 }
 
@@ -34,7 +32,6 @@ impl Default for ComparisonConfig {
             text_weight: 0.7,
             image_weight: 0.3,
             paragraph_threshold: 0.5,
-            sentence_threshold: 0.6,
             image_threshold: 0.7,
             display_threshold: 0.3,
             granularity: "paragraph".to_string(),
@@ -159,7 +156,6 @@ impl DocumentComparator {
             parser: DocumentParser::default(),
             text_calculator: TextSimilarityCalculator::new(
                 config.paragraph_threshold,
-                config.sentence_threshold,
                 true,
                 20,
             ),
@@ -179,16 +175,18 @@ impl DocumentComparator {
         config: &ComparisonConfig,
     ) -> Result<ComparisonResult, String> {
         let start_time = std::time::Instant::now();
-
+        // 打印日志
+        println!("开始比较文档: {} 和 {}", file1, file2);
         // 解析文档
         let doc1 = self.parser.parse(file1).map_err(|e| e.to_string())?;
         let doc2 = self.parser.parse(file2).map_err(|e| e.to_string())?;
 
         // 计算文本相似度
         let text_result = self.text_calculator.calculate(&doc1, &doc2);
-        
+        println!("文本相似度: {}", text_result.overall_similarity);
         // 计算图像相似度
         let image_result = self.image_calculator.calculate(&doc1.images, &doc2.images);
+        println!("图像相似度: {}", image_result.overall_similarity);
 
         // 计算综合相似度
         let overall_similarity = if doc1.images.is_empty() && doc2.images.is_empty() {
@@ -198,7 +196,7 @@ impl DocumentComparator {
             text_result.overall_similarity * config.text_weight
                 + image_result.overall_similarity * config.image_weight
         };
-
+        println!("综合相似度: {}", overall_similarity);
         let processing_time_ms = start_time.elapsed().as_millis() as u64;
 
         Ok(ComparisonResult {
@@ -261,10 +259,7 @@ impl DocumentComparator {
         };
 
         let total_pairs = pairs.len();
-        let mut results = Vec::new();
-        let mut error_count = 0;
-        let mut high_similarity_count = 0;
-
+        
         // 获取文件名
         let file_names: Vec<String> = files
             .iter()
@@ -277,43 +272,64 @@ impl DocumentComparator {
             })
             .collect();
 
-        for (idx, (i, j)) in pairs.iter().enumerate() {
-            // 更新进度
-            if let Some(ref callback) = progress_callback {
-                let elapsed = start_time.elapsed().as_secs_f64();
-                let pairs_per_second = if elapsed > 0.0 { idx as f64 / elapsed } else { 0.0 };
-                let remaining = if pairs_per_second > 0.0 {
-                    (total_pairs - idx) as f64 / pairs_per_second
-                } else {
-                    0.0
-                };
-
-                callback(BatchProgress {
-                    total_pairs,
-                    completed_pairs: idx,
-                    current_source: file_names[*i].clone(),
-                    current_target: file_names[*j].clone(),
-                    percentage: idx as f64 / total_pairs as f64 * 100.0,
-                    estimated_remaining_seconds: remaining,
-                    pairs_per_minute: pairs_per_second * 60.0,
-                    high_similarity_count,
-                    error_count,
-                    status: "running".to_string(),
-                });
-            }
-
-            match self.compare(&files[*i], &files[*j], config) {
-                Ok(result) => {
-                    if result.overall_similarity >= 0.7 {
-                        high_similarity_count += 1;
+        // 使用 Rayon 并行处理文件对，同时支持进度回调
+        use rayon::prelude::*;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        
+        let completed_count = Arc::new(AtomicUsize::new(0));
+        let error_count_atomic = Arc::new(AtomicUsize::new(0));
+        let high_similarity_count_atomic = Arc::new(AtomicUsize::new(0));
+        
+        let results: Vec<Result<ComparisonResult, String>> = pairs
+            .par_iter()
+            .map(|(i, j)| {
+                let result = self.compare(&files[*i], &files[*j], config);
+                
+                // 更新计数器
+                let completed = completed_count.fetch_add(1, Ordering::SeqCst) + 1;
+                
+                // 更新统计
+                match &result {
+                    Ok(r) => {
+                        if r.overall_similarity >= 0.7 {
+                            high_similarity_count_atomic.fetch_add(1, Ordering::SeqCst);
+                        }
                     }
-                    results.push(result);
+                    Err(_) => {
+                        error_count_atomic.fetch_add(1, Ordering::SeqCst);
+                    }
                 }
-                Err(_) => {
-                    error_count += 1;
+                
+                // 调用进度回调（每完成一个任务就回调一次）
+                if let Some(ref callback) = progress_callback {
+                    let elapsed = start_time.elapsed().as_secs_f64();
+                    let pairs_per_second = if elapsed > 0.0 { completed as f64 / elapsed } else { 0.0 };
+                    let remaining = if pairs_per_second > 0.0 {
+                        (total_pairs - completed) as f64 / pairs_per_second
+                    } else {
+                        0.0
+                    };
+                    
+                    callback(BatchProgress {
+                        total_pairs,
+                        completed_pairs: completed,
+                        current_source: file_names[*i].clone(),
+                        current_target: file_names[*j].clone(),
+                        percentage: completed as f64 / total_pairs as f64 * 100.0,
+                        estimated_remaining_seconds: remaining,
+                        pairs_per_minute: pairs_per_second * 60.0,
+                        high_similarity_count: high_similarity_count_atomic.load(Ordering::SeqCst),
+                        error_count: error_count_atomic.load(Ordering::SeqCst),
+                        status: "running".to_string(),
+                    });
                 }
-            }
-        }
+                
+                result
+            })
+            .collect();
+        
+        // 收集成功的结果
+        let results: Vec<ComparisonResult> = results.into_iter().flatten().collect();
 
         // 计算统计信息
         let similarities: Vec<f64> = results.iter().map(|r| r.overall_similarity).collect();
@@ -326,7 +342,7 @@ impl DocumentComparator {
         let min_similarity = similarities.iter().cloned().fold(1.0, f64::min);
 
         let high_similarity_pairs = similarities.iter().filter(|&&s| s >= 0.7).count();
-        let medium_similarity_pairs = similarities.iter().filter(|&&s| s >= 0.5 && s < 0.7).count();
+        let medium_similarity_pairs = similarities.iter().filter(|&&s| (0.5..0.7).contains(&s)).count();
         let low_similarity_pairs = similarities.iter().filter(|&&s| s < 0.5).count();
 
         // 构建相似度矩阵
@@ -334,8 +350,8 @@ impl DocumentComparator {
         let mut similarity_matrix = vec![vec![0.0; n]; n];
         
         // 对角线为1
-        for i in 0..n {
-            similarity_matrix[i][i] = 1.0;
+        for (i, row) in similarity_matrix.iter_mut().enumerate().take(n) {
+            row[i] = 1.0;
         }
         
         // 填充结果
@@ -415,14 +431,43 @@ pub async fn compare_documents(
     file2: String,
     config: Option<ComparisonConfig>,
 ) -> Result<ComparisonResult, String> {
+    println!("========================================");
+    println!("开始文档对比");
+    println!("源文件: {}", file1);
+    println!("目标文件: {}", file2);
+    println!("========================================");
+    
     let config = config.unwrap_or_default();
+    println!("配置参数: text_weight={}, image_weight={}", config.text_weight, config.image_weight);
+    
     let comparator = DocumentComparator::new(config.clone());
     
-    tokio::task::spawn_blocking(move || {
+    println!("正在执行对比计算...");
+    let result = tokio::task::spawn_blocking(move || {
         comparator.compare(&file1, &file2, &config)
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| {
+        println!("对比任务执行失败: {}", e);
+        e.to_string()
+    })?;
+    
+    match &result {
+        Ok(res) => {
+            println!("========================================");
+            println!("对比完成！");
+            println!("综合相似度: {:.2}%", res.overall_similarity * 100.0);
+            println!("文本相似度: {:.2}%", res.text_similarity * 100.0);
+            println!("图像相似度: {:.2}%", res.image_similarity * 100.0);
+            println!("处理耗时: {} ms", res.processing_time_ms);
+            println!("========================================");
+        }
+        Err(e) => {
+            println!("对比失败: {}", e);
+        }
+    }
+    
+    result
 }
 
 /// 批量比较文档

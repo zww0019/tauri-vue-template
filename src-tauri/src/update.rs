@@ -1,4 +1,3 @@
-use serde_json;
 use std::process::Command;
 use tauri::{AppHandle, Manager};
 

@@ -141,6 +141,7 @@ impl ReportGenerator {
         .stat-item {{ background: #f8f9fa; padding: 15px; border-radius: 8px; }}
         .stat-value {{ font-size: 24px; font-weight: bold; color: #333; }}
         .stat-label {{ color: #666; font-size: 12px; }}
+        .stat-time {{ color: #888; font-size: 11px; margin-top: 4px; }}
         .match-list {{ list-style: none; }}
         .match-item {{ background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #4CAF50; }}
         .match-item.high {{ border-left-color: #f44336; }}
@@ -224,25 +225,56 @@ impl ReportGenerator {
             <div class="stat-item">
                 <div class="stat-value">{:.1}%</div>
                 <div class="stat-label">余弦相似度</div>
+                <div class="stat-time">耗时: {:.2}ms</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value">{:.1}%</div>
-                <div class="stat-label">Jaccard相似度</div>
+                <div class="stat-label">N-gram相似度</div>
+                <div class="stat-time">耗时: {:.2}ms</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value">{:.1}%</div>
                 <div class="stat-label">编辑距离相似度</div>
+                <div class="stat-time">耗时: {:.2}ms</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value">{:.1}%</div>
                 <div class="stat-label">关键词相似度</div>
+                <div class="stat-time">耗时: {:.2}ms</div>
+            </div>
+        </div>
+        <h3>⏱️ 性能统计</h3>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value">{:.2}ms</div>
+                <div class="stat-label">分词耗时</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{:.2}ms</div>
+                <div class="stat-label">关键词提取</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{:.2}ms</div>
+                <div class="stat-label">段落匹配</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{}ms</div>
+                <div class="stat-label">总处理时间</div>
             </div>
         </div>
 "#,
                 result.text_result.cosine_similarity * 100.0,
-                result.text_result.jaccard_similarity * 100.0,
+                result.text_result.cosine_time_us as f64 / 1000.0,
+                result.text_result.ngram_similarity * 100.0,
+                result.text_result.ngram_time_us as f64 / 1000.0,
                 result.text_result.edit_distance_similarity * 100.0,
+                result.text_result.edit_distance_time_us as f64 / 1000.0,
                 result.text_result.keyword_similarity * 100.0,
+                result.text_result.keyword_similarity_time_us as f64 / 1000.0,
+                result.text_result.tokenization_time_us as f64 / 1000.0,
+                result.text_result.keyword_extraction_time_us as f64 / 1000.0,
+                result.text_result.paragraph_matching_time_us as f64 / 1000.0,
+                result.processing_time_ms,
             ));
         }
 
@@ -334,10 +366,18 @@ impl ReportGenerator {
         csv.push_str(&format!("文本相似度,{:.2}%\n", result.text_similarity * 100.0));
         csv.push_str(&format!("图像相似度,{:.2}%\n", result.image_similarity * 100.0));
         csv.push_str(&format!("余弦相似度,{:.2}%\n", result.text_result.cosine_similarity * 100.0));
-        csv.push_str(&format!("Jaccard相似度,{:.2}%\n", result.text_result.jaccard_similarity * 100.0));
+        csv.push_str(&format!("余弦相似度耗时(ms),{:.2}\n", result.text_result.cosine_time_us as f64 / 1000.0));
+        csv.push_str(&format!("N-gram相似度,{:.2}%\n", result.text_result.ngram_similarity * 100.0));
+        csv.push_str(&format!("N-gram相似度耗时(ms),{:.2}\n", result.text_result.ngram_time_us as f64 / 1000.0));
+        csv.push_str(&format!("编辑距离相似度,{:.2}%\n", result.text_result.edit_distance_similarity * 100.0));
+        csv.push_str(&format!("编辑距离耗时(ms),{:.2}\n", result.text_result.edit_distance_time_us as f64 / 1000.0));
+        csv.push_str(&format!("关键词相似度,{:.2}%\n", result.text_result.keyword_similarity * 100.0));
+        csv.push_str(&format!("关键词相似度耗时(ms),{:.2}\n", result.text_result.keyword_similarity_time_us as f64 / 1000.0));
+        csv.push_str(&format!("分词耗时(ms),{:.2}\n", result.text_result.tokenization_time_us as f64 / 1000.0));
+        csv.push_str(&format!("关键词提取耗时(ms),{:.2}\n", result.text_result.keyword_extraction_time_us as f64 / 1000.0));
+        csv.push_str(&format!("段落匹配耗时(ms),{:.2}\n", result.text_result.paragraph_matching_time_us as f64 / 1000.0));
         csv.push_str(&format!("相似段落数,{}\n", result.text_result.matched_paragraphs.len()));
-        csv.push_str(&format!("相似句子数,{}\n", result.text_result.matched_sentences.len()));
-        csv.push_str(&format!("处理时间(ms),{}\n", result.processing_time_ms));
+        csv.push_str(&format!("总处理时间(ms),{}\n", result.processing_time_ms));
         
         let file = File::create(output_path).map_err(|e| e.to_string())?;
         let mut writer = BufWriter::new(file);

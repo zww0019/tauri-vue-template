@@ -160,9 +160,9 @@ function getSimilarityLabel(similarity: number): string {
             </div>
             <div class="text-center p-3 bg-gray-50 rounded-lg">
               <div class="text-xl font-semibold text-gray-800">
-                {{ (store.singleResult.text_result.jaccard_similarity * 100).toFixed(1) }}%
+                {{ (store.singleResult.text_result.ngram_similarity * 100).toFixed(1) }}%
               </div>
-              <p class="text-xs text-gray-500">Jaccard相似度</p>
+              <p class="text-xs text-gray-500">N-gram相似度</p>
             </div>
             <div class="text-center p-3 bg-gray-50 rounded-lg">
               <div class="text-xl font-semibold text-gray-800">
@@ -185,10 +185,6 @@ function getSimilarityLabel(similarity: number): string {
             <div>
               <p class="text-gray-500">相似段落</p>
               <p class="font-semibold text-gray-800">{{ store.singleResult.text_result.matched_paragraphs.length }} 对</p>
-            </div>
-            <div>
-              <p class="text-gray-500">相似句子</p>
-              <p class="font-semibold text-gray-800">{{ store.singleResult.text_result.matched_sentences.length }} 对</p>
             </div>
             <div>
               <p class="text-gray-500">共同关键词</p>
@@ -265,12 +261,13 @@ function getSimilarityLabel(similarity: number): string {
           <span 
             v-for="keyword in store.singleResult.text_result.common_keywords" 
             :key="keyword"
-            class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+            class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
           >
             {{ keyword }}
           </span>
         </div>
       </div>
+
     </div>
   </div>
 </template>

@@ -95,7 +95,7 @@ fn decrypt_with_public_key(
     let decrypted_bigint = encrypted_bigint.modpow(e, n);
     
     // 4. 转换回字节数组（需要填充到密钥长度）
-    let key_size = (n.bits() + 7) / 8; // 密钥长度（字节）
+    let key_size = n.bits().div_ceil(8); // 密钥长度（字节）
     let mut decrypted_bytes = decrypted_bigint.to_bytes_be();
     
     // 确保长度正确（可能需要前导零）
@@ -130,13 +130,13 @@ fn decrypt_with_public_key(
     
     // 查找分隔符 0x00（跳过前两个字节后的第一个 0x00）
     let mut separator_pos = None;
-    for i in 2..decrypted_bytes.len() {
-        if decrypted_bytes[i] == 0x00 {
+    for (i, &byte) in decrypted_bytes.iter().enumerate().skip(2) {
+        if byte == 0x00 {
             separator_pos = Some(i);
             break;
         }
         // PKCS#1 v1.5 的填充字节应该是 0xFF
-        if decrypted_bytes[i] != 0xFF {
+        if byte != 0xFF {
             return Err("PKCS#1填充格式错误：填充字节不是0xFF".to_string());
         }
     }
@@ -189,7 +189,7 @@ pub async fn verify_license(
         .map_err(|_| "授权码解析失败（JSON格式错误）".to_string())?;
     
     // 验证工具ID
-    if license_info.tool_id != "foldersync" {
+    if license_info.tool_id != "doc-similarity" {
         return Err("授权码工具ID不匹配".to_string());
     }
     

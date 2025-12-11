@@ -53,7 +53,7 @@ async function loadFile(filePath: string) {
     status: 'parsing',
   }
   
-  emit('select', fileInfo)
+  emit('select', { ...fileInfo })
 
   try {
     // 验证格式
@@ -63,7 +63,7 @@ async function loadFile(filePath: string) {
     if (!isValid) {
       fileInfo.status = 'error'
       fileInfo.error = '不支持的文件格式'
-      emit('select', fileInfo)
+      emit('select', { ...fileInfo })
       return
     }
 
@@ -82,13 +82,13 @@ async function loadFile(filePath: string) {
       console.log('[FileSelector] 解析返回 null')
     }
     
-    emit('select', fileInfo)
+    emit('select', { ...fileInfo })
     console.log('[FileSelector] 已发送 select 事件')
   } catch (e) {
     console.error('[FileSelector] 捕获到错误:', e)
     fileInfo.status = 'error'
     fileInfo.error = String(e)
-    emit('select', fileInfo)
+    emit('select', { ...fileInfo })
   } finally {
     isLoading.value = false
     console.log('[FileSelector] isLoading 设置为 false')

@@ -227,12 +227,11 @@ impl DocumentParser {
                 Ok(xml::reader::XmlEvent::EndElement { name }) => {
                     if name.local_name == "t" {
                         in_text = false;
-                    } else if name.local_name == "p" {
-                        if !current_paragraph.is_empty() {
+                    } else if name.local_name == "p"
+                        && !current_paragraph.is_empty() {
                             text.push_str(&current_paragraph);
                             text.push('\n');
                             current_paragraph.clear();
-                        }
                     }
                 }
                 Ok(xml::reader::XmlEvent::Characters(chars)) => {
@@ -351,12 +350,18 @@ impl DocumentParser {
         
         let mut count = 0;
         
-        for _word in text.unicode_words() {
-            count += 1;
+        // 统计非中文词（英文、数字等）
+        for word in text.unicode_words() {
+            // 如果词不包含中文字符，则计数
+            let has_cjk = word.chars().any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch));
+            if !has_cjk {
+                count += 1;
+            }
         }
         
+        // 单独统计中文字符（中文按字计数更合理）
         for ch in text.chars() {
-            if ch >= '\u{4e00}' && ch <= '\u{9fff}' {
+            if ('\u{4e00}'..='\u{9fff}').contains(&ch) {
                 count += 1;
             }
         }

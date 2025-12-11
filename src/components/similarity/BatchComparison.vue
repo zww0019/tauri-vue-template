@@ -51,31 +51,56 @@ async function addFile(filePath: string) {
 
   try {
     const isValid = await store.validateFile(filePath)
-    const file = index >= 0 ? store.batchFiles[index] : null
-    if (!isValid) {
-      if (file) {
-        file.status = 'error'
-        file.error = '不支持的文件格式'
+    if (index >= 0) {
+      const currentFile = store.batchFiles[index]
+      if (!currentFile) return
+      
+      if (!isValid) {
+        store.batchFiles[index] = {
+          path: currentFile.path,
+          name: currentFile.name,
+          size: currentFile.size,
+          type: currentFile.type,
+          status: 'error',
+          error: '不支持的文件格式'
+        }
+        return
       }
-      return
-    }
 
-    const parsed = await store.parseDocument(filePath)
-    if (file) {
+      const parsed = await store.parseDocument(filePath)
       if (parsed) {
-        file.status = 'ready'
-        file.parsed = parsed
-        file.size = parsed.metadata.file_size
+        store.batchFiles[index] = {
+          path: currentFile.path,
+          name: currentFile.name,
+          size: parsed.metadata.file_size,
+          type: currentFile.type,
+          status: 'ready',
+          parsed: parsed
+        }
       } else {
-        file.status = 'error'
-        file.error = '解析失败'
+        store.batchFiles[index] = {
+          path: currentFile.path,
+          name: currentFile.name,
+          size: currentFile.size,
+          type: currentFile.type,
+          status: 'error',
+          error: '解析失败'
+        }
       }
     }
   } catch (e) {
-    const file = index >= 0 ? store.batchFiles[index] : null
-    if (file) {
-      file.status = 'error'
-      file.error = String(e)
+    if (index >= 0) {
+      const currentFile = store.batchFiles[index]
+      if (!currentFile) return
+      
+      store.batchFiles[index] = {
+        path: currentFile.path,
+        name: currentFile.name,
+        size: currentFile.size,
+        type: currentFile.type,
+        status: 'error',
+        error: String(e)
+      }
     }
   }
 }

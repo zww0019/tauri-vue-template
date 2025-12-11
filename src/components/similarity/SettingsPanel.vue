@@ -114,21 +114,6 @@ watch(() => localConfig.value.image_weight, (newVal) => {
 
             <div>
               <div class="flex items-center justify-between mb-2">
-                <label class="text-sm text-gray-600">句子匹配阈值</label>
-                <span class="text-sm font-medium text-gray-800">{{ (localConfig.sentence_threshold * 100).toFixed(0) }}%</span>
-              </div>
-              <input
-                type="range"
-                v-model.number="localConfig.sentence_threshold"
-                min="0.1"
-                max="0.9"
-                step="0.1"
-                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-
-            <div>
-              <div class="flex items-center justify-between mb-2">
                 <label class="text-sm text-gray-600">图像匹配阈值</label>
                 <span class="text-sm font-medium text-gray-800">{{ (localConfig.image_threshold * 100).toFixed(0) }}%</span>
               </div>
@@ -164,7 +149,7 @@ watch(() => localConfig.value.image_weight, (newVal) => {
         <div>
           <h3 class="text-sm font-medium text-gray-900 mb-4">对比粒度</h3>
           
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-2 gap-3">
             <button
               @click="localConfig.granularity = 'overall'"
               :class="[
@@ -188,18 +173,6 @@ watch(() => localConfig.value.image_weight, (newVal) => {
             >
               <span class="block text-sm font-medium">段落级</span>
               <span class="block text-xs text-gray-500">逐段落对比</span>
-            </button>
-            <button
-              @click="localConfig.granularity = 'sentence'"
-              :class="[
-                'p-3 rounded-lg border-2 transition-all text-center',
-                localConfig.granularity === 'sentence'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300'
-              ]"
-            >
-              <span class="block text-sm font-medium">句子级</span>
-              <span class="block text-xs text-gray-500">逐句对比</span>
             </button>
           </div>
         </div>
